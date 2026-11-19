@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101827"><meta name="description" content="A daily countdown to a new laptop and summer vacation.">
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg">
+<title>The Countdown</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#111d30;--panel2:#17253a;--line:#293b55;--ink:#edf3fc;--muted:#9eafc5;--blue:#91bfff;--gold:#e9c987}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#17263c 0,#0b1220 58%);color:var(--ink);font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+main{max-width:760px;margin:auto;padding:28px 18px 56px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:25px}.brand{font-size:12px;letter-spacing:.22em;color:var(--blue);font-weight:750}.year{font-size:12px;border:1px solid var(--line);padding:5px 10px;border-radius:999px;color:var(--muted)}
+.hero{padding:27px 23px 23px;border:1px solid var(--line);border-radius:22px;background:linear-gradient(145deg,#17283f,#101a2a);box-shadow:0 20px 60px #0004}
+.eyebrow{font-size:11px;letter-spacing:.18em;color:var(--muted);font-weight:700}.count{font-size:clamp(46px,13vw,76px);line-height:1.08;font-weight:800;letter-spacing:-.06em;margin:9px 0 4px}.sub{color:var(--muted);font-size:13px}.progress{height:6px;background:#304158;border-radius:99px;margin:21px 0 8px;overflow:hidden}.fill{height:100%;width:0;background:linear-gradient(90deg,#739fe0,#b6d4ff);border-radius:99px;transition:width .3s}
+.stats{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:12px}.section{margin:27px 0 12px;display:flex;justify-content:space-between;align-items:end}.section h2{font-size:17px;margin:0}.section small{color:var(--muted)}
+.today{border:1px solid #486083;background:#14243a;border-radius:18px;padding:21px;margin-top:14px}.today h2{font-size:22px;margin:5px 0 12px}.today p{white-space:pre-wrap;color:#d6e0ef;margin:0;font-size:15px;line-height:1.8}.date-label{font-size:11px;color:var(--blue);letter-spacing:.12em;font-weight:750}
+.days{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.day{min-height:74px;text-align:left;border:1px solid var(--line);border-radius:13px;background:#111c2d;color:var(--ink);padding:10px;cursor:pointer;transition:.15s}.day:disabled{cursor:not-allowed;opacity:.48;background:#0e1725}.day:not(:disabled):hover{border-color:var(--blue);transform:translateY(-1px)}.day.active{border-color:var(--blue);background:#1b304b;box-shadow:inset 0 0 0 1px #91bfff44}.day .n{font-size:18px;font-weight:750;display:block}.day .d{font-size:10px;color:var(--muted);display:block;margin-top:3px}.lock{font-size:11px;color:var(--muted)}
+.foot{color:var(--muted);font-size:11px;text-align:center;margin-top:30px}.note{border:1px solid var(--line);border-radius:14px;padding:13px 15px;color:var(--muted);font-size:12px;margin-top:16px}
+@media(max-width:420px){.days{grid-template-columns:repeat(3,minmax(0,1fr))}.hero{padding:22px 18px}.today{padding:18px}}
+</style>
+</head>
+<body><main>
+<header class="top"><div class="brand">THE COUNTDOWN</div><div class="year">2026 · CHILE</div></header>
+<section class="hero">
+<div class="eyebrow">UNTIL THE NEXT LETTER</div><div class="count" id="count">--:--:--</div><div class="sub" id="nextLabel">Loading Chile time…</div>
+<div class="progress"><div class="fill" id="progress"></div></div>
+<div class="stats"><span id="unlocked">0 / 24 letters unlocked</span><span id="localTime">Chile · 23:30 unlock</span></div>
+</section>
+<div class="section"><h2>Daily letters</h2><small>One new letter at 11:30 PM</small></div>
+<div class="days" id="days"></div>
+<section class="today" id="letter">
+<div class="date-label">YOUR LETTER</div><h2>Loading…</h2><p></p>
+</section>
+<div class="note">Letters unlock at 23:30 on each date in Chile (America/Santiago). Once a letter unlocks, it stays available on this device. The app works offline after its first load. Because it runs on your device, changing the device clock can affect local unlock checks.</div>
+<div class="foot">A countdown for the laptop, new projects and a long summer break.</div>
+</main>
+<script src="letters.js"></script><script>
+const zone='America/Santiago', unlockHour=23, unlockMinute=30;
+const dateFmt=new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit'});
+const timeFmt=new Intl.DateTimeFormat('en-GB',{timeZone:zone,hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'});
+function parts(fmt,now){return Object.fromEntries(fmt.formatToParts(now).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));}
+function chileNow(){const n=new Date();return {date:dateFmt.format(n),...parts(timeFmt,n)};}
+function unlockedCount(c){let n=0;for(const x of LETTERS){if(c.date>x.date || (c.date===x.date && (+c.hour>23 || (+c.hour===23 && +c.minute>=30))))n++;}return n;}
+let selected=0;
+function render(){
+ const c=chileNow(), count=unlockedCount(c);
+ const nowDate=c.date, nowMinutes=+c.hour*60 + +c.minute;
+ document.getElementById('unlocked').textContent=`${count} / 24 letters unlocked`;
+ document.getElementById('localTime').textContent=`Chile · ${c.hour}:${c.minute}:${c.second}`;
+ document.getElementById('progress').style.width=(count/24*100)+'%';
+ const next=LETTERS.find(x=>x.date>nowDate || (x.date===nowDate && nowMinutes<1410));
+ if(next){
+   let target=new Date(next.date+'T23:30:00-03:00');
+   // Chile uses daylight time (UTC-3) during this November/December period.
+   let diff=Math.max(0,target-Date.now());
+   const hh=Math.floor(diff/3600000), mm=Math.floor(diff%3600000/60000), ss=Math.floor(diff%60000/1000);
+   document.getElementById('count').textContent=`${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+   document.getElementById('nextLabel').textContent=`Next unlock · ${next.date} at 11:30 PM Chile time`;
+ }else{
+   document.getElementById('count').textContent='24 / 24';document.getElementById('nextLabel').textContent='All letters unlocked. December 11 reached.';
+ }
+ const grid=document.getElementById('days');grid.innerHTML='';
+ LETTERS.forEach((x,i)=>{
+   const open=i<count, b=document.createElement('button');b.className='day'+(i===selected?' active':'');b.disabled=!open;
+   const d=new Date(x.date+'T12:00:00');const label=d.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:zone});
+   b.innerHTML=`<span class="n">${String(i+1).padStart(2,'0')}</span><span class="d">${label} · ${open?'UNLOCKED':'LOCKED'}</span>`;
+   b.addEventListener('click',()=>{selected=i;renderLetter();document.querySelectorAll('.day').forEach((el,j)=>el.classList.toggle('active',j===i));});
+   grid.appendChild(b);
+ });
+ if(count===0){selected=-1;document.querySelector('#letter .date-label').textContent='NOT YET UNLOCKED';document.querySelector('#letter h2').textContent='Your first letter is waiting.';document.querySelector('#letter p').textContent='Come back at 11:30 PM Chile time on November 18.';}
+ else {if(selected<0||selected>=count)selected=count-1;renderLetter();}
+}
+function renderLetter(){if(selected<0)return;const x=LETTERS[selected];const d=new Date(x.date+'T12:00:00');document.querySelector('#letter .date-label').textContent=`DAY ${String(x.day).padStart(2,'0')} · ${d.toLocaleDateString('en-US',{month:'long',day:'numeric',timeZone:zone}).toUpperCase()}`;document.querySelector('#letter h2').textContent=x.title;document.querySelector('#letter p').textContent=x.body;}
+render();setInterval(render,1000);
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));
+</script></body></html>
